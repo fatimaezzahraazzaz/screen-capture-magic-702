@@ -10,8 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as HistoriqueRouteImport } from './routes/historique'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ModelesRouteImport } from './routes/modeles'
+import { Route as ParametresRouteImport } from './routes/parametres'
 import { Route as ProjetsIndexRouteImport } from './routes/projets.index'
+import { Route as ProjetsProjectIdRouteImport } from './routes/projets.$projectId'
 import { Route as ProjetsNouveauRouteImport } from './routes/projets.nouveau'
 
 const IndexRoute = IndexRouteImport.update({
@@ -19,14 +23,34 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HistoriqueRoute = HistoriqueRouteImport.update({
+  id: '/historique',
+  path: '/historique',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ModelesRoute = ModelesRouteImport.update({
+  id: '/modeles',
+  path: '/modeles',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ParametresRoute = ParametresRouteImport.update({
+  id: '/parametres',
+  path: '/parametres',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjetsIndexRoute = ProjetsIndexRouteImport.update({
   id: '/projets/',
   path: '/projets/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjetsProjectIdRoute = ProjetsProjectIdRouteImport.update({
+  id: '/projets/$projectId',
+  path: '/projets/$projectId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjetsNouveauRoute = ProjetsNouveauRouteImport.update({
@@ -37,34 +61,75 @@ const ProjetsNouveauRoute = ProjetsNouveauRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/historique': typeof HistoriqueRoute
   '/login': typeof LoginRoute
+  '/modeles': typeof ModelesRoute
+  '/parametres': typeof ParametresRoute
+  '/projets/$projectId': typeof ProjetsProjectIdRoute
   '/projets/nouveau': typeof ProjetsNouveauRoute
   '/projets/': typeof ProjetsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/historique': typeof HistoriqueRoute
   '/login': typeof LoginRoute
+  '/modeles': typeof ModelesRoute
+  '/parametres': typeof ParametresRoute
+  '/projets/$projectId': typeof ProjetsProjectIdRoute
   '/projets/nouveau': typeof ProjetsNouveauRoute
   '/projets': typeof ProjetsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/historique': typeof HistoriqueRoute
   '/login': typeof LoginRoute
+  '/modeles': typeof ModelesRoute
+  '/parametres': typeof ParametresRoute
+  '/projets/$projectId': typeof ProjetsProjectIdRoute
   '/projets/nouveau': typeof ProjetsNouveauRoute
   '/projets/': typeof ProjetsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/projets/nouveau' | '/projets/'
+  fullPaths:
+    | '/'
+    | '/historique'
+    | '/login'
+    | '/modeles'
+    | '/parametres'
+    | '/projets/$projectId'
+    | '/projets/nouveau'
+    | '/projets/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/projets/nouveau' | '/projets'
-  id: '__root__' | '/' | '/login' | '/projets/nouveau' | '/projets/'
+  to:
+    | '/'
+    | '/historique'
+    | '/login'
+    | '/modeles'
+    | '/parametres'
+    | '/projets/$projectId'
+    | '/projets/nouveau'
+    | '/projets'
+  id:
+    | '__root__'
+    | '/'
+    | '/historique'
+    | '/login'
+    | '/modeles'
+    | '/parametres'
+    | '/projets/$projectId'
+    | '/projets/nouveau'
+    | '/projets/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  HistoriqueRoute: typeof HistoriqueRoute
   LoginRoute: typeof LoginRoute
+  ModelesRoute: typeof ModelesRoute
+  ParametresRoute: typeof ParametresRoute
+  ProjetsProjectIdRoute: typeof ProjetsProjectIdRoute
   ProjetsNouveauRoute: typeof ProjetsNouveauRoute
   ProjetsIndexRoute: typeof ProjetsIndexRoute
 }
@@ -78,6 +143,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/historique': {
+      id: '/historique'
+      path: '/historique'
+      fullPath: '/historique'
+      preLoaderRoute: typeof HistoriqueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -85,11 +157,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/modeles': {
+      id: '/modeles'
+      path: '/modeles'
+      fullPath: '/modeles'
+      preLoaderRoute: typeof ModelesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/parametres': {
+      id: '/parametres'
+      path: '/parametres'
+      fullPath: '/parametres'
+      preLoaderRoute: typeof ParametresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/projets/': {
       id: '/projets/'
       path: '/projets'
       fullPath: '/projets/'
       preLoaderRoute: typeof ProjetsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projets/$projectId': {
+      id: '/projets/$projectId'
+      path: '/projets/$projectId'
+      fullPath: '/projets/$projectId'
+      preLoaderRoute: typeof ProjetsProjectIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/projets/nouveau': {
@@ -104,7 +197,11 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  HistoriqueRoute: HistoriqueRoute,
   LoginRoute: LoginRoute,
+  ModelesRoute: ModelesRoute,
+  ParametresRoute: ParametresRoute,
+  ProjetsProjectIdRoute: ProjetsProjectIdRoute,
   ProjetsNouveauRoute: ProjetsNouveauRoute,
   ProjetsIndexRoute: ProjetsIndexRoute,
 }
