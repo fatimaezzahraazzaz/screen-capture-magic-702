@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Bell, FolderKanban, History, LayoutTemplate, LogOut, Settings, ChevronDown } from "lucide-react";
 import { useDb } from "@/lib/db/database";
 import { logout } from "@/services/auth-service";
@@ -98,7 +98,6 @@ export function AppShell({ title, children, fullBleed }: { title: string; childr
   );
 }
 
-import { useState } from "react";
 function useHydratedFlag() {
   return useState(false);
 }
