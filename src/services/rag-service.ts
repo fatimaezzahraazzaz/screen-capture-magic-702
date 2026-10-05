@@ -12,7 +12,7 @@ export const ragService = {
     return db.historical_experiences
       .map((e) => {
         let score = e.fake_similarity_score;
-        if (!text.includes(e.material.toLowerCase().split(" ")[0]) && !techs.some((t) => e.technique.toLowerCase().includes(t))) score -= 25;
+        if (!text.includes(e.material.toLowerCase().split(" ")[0] ?? "") && !techs.some((t) => e.technique.toLowerCase().includes(t))) score -= 25;
         return { experience: e, score: Math.max(20, Math.min(99, score)) };
       })
       .sort((a, b) => b.score - a.score)

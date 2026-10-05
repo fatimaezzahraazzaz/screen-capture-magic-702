@@ -10,7 +10,7 @@ export interface Project {
 }
 export interface ProjectFile {
   id: string; project_id: string; filename: string; file_type: string; size: string;
-  status: FileStatus; note?: string; created_at: string;
+  status: FileStatus; note?: string | undefined; created_at: string;
 }
 export interface Sample { id: string; project_id: string; reference: string; name: string }
 export interface Technique { id: string; project_id: string; name: string }
@@ -21,7 +21,7 @@ export interface Measurement {
 export type ChatAction = "confirm_association" | "open_report" | "show_experiences" | "show_sources";
 export interface ChatMessage {
   id: string; project_id: string; role: "user" | "assistant"; content: string;
-  created_at: string; action?: ChatAction; action_done?: boolean;
+  created_at: string; action?: ChatAction | undefined; action_done?: boolean | undefined;
 }
 export interface HistoricalExperience {
   id: string; title: string; reference: string; material: string; technique: string;

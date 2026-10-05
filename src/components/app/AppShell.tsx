@@ -17,7 +17,7 @@ const NAV = [
 
 export function AppShell({ title, children, fullBleed }: { title: string; children: ReactNode; fullBleed?: boolean }) {
   const session = useDb((d) => d.session);
-  const user = useDb((d) => d.users[0]);
+  const user = useDb((d) => d.users[0]) ?? { name: "Expert Démo", role: "Expert", email: "" };
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const [hydrated, setHydrated] = useHydratedFlag();
