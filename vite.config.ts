@@ -12,4 +12,13 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    // Pre-bundle UI deps together with React so late discovery never creates a second React copy.
+    optimizeDeps: {
+      include: [
+        "@radix-ui/react-tabs", "@radix-ui/react-dialog", "@radix-ui/react-select",
+        "@radix-ui/react-popover", "@radix-ui/react-dropdown-menu", "sonner", "date-fns", "date-fns/locale",
+      ],
+    },
+  },
 });
