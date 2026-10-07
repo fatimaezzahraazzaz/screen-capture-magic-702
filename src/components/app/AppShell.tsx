@@ -29,7 +29,7 @@ export function AppShell({ title, children, fullBleed }: { title: string; childr
 
   return (
     <div className="flex h-screen bg-background">
-      <aside className="flex w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
         <div className="px-5 py-5"><Logo /></div>
         <nav className="flex-1 space-y-1 px-3 pt-2">
           {NAV.map(({ to, label, icon: Icon }) => {
@@ -48,7 +48,7 @@ export function AppShell({ title, children, fullBleed }: { title: string; childr
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-card px-6">
-          <h1 className="font-display text-lg font-bold">{title}</h1>
+          <h1 className="truncate font-display text-lg font-bold">{title}</h1>
           <div className="flex items-center gap-2">
             <Popover>
               <PopoverTrigger className="relative grid h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:bg-muted" aria-label="Notifications">
@@ -72,7 +72,7 @@ export function AppShell({ title, children, fullBleed }: { title: string; childr
             <DropdownMenu>
               <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted">
                 <div className="grid h-8 w-8 place-items-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">ED</div>
-                <div className="text-left leading-tight">
+                <div className="hidden text-left leading-tight sm:block">
                   <div className="text-sm font-medium">{user.name}</div>
                   <div className="text-[11px] text-muted-foreground">{user.role}</div>
                 </div>
