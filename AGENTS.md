@@ -8,3 +8,6 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Keep scientific evidence references centralized around Measurement IDs so control, context, and report views show the same provenance.
+- Keep imported DOCX templates as browser-local prototype metadata because the project intentionally has no persistent document backend yet.

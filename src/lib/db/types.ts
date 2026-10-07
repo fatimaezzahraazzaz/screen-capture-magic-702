@@ -26,13 +26,16 @@ export interface ChatMessage {
 export interface HistoricalExperience {
   id: string; title: string; reference: string; material: string; technique: string;
   summary: string; fake_similarity_score: number; year: number; client_sector: string;
+  passage: string; passage_location: string; quote_reference?: string;
 }
 export interface ExternalSource {
   id: string; title: string; publisher: string; year: number; url: string; summary: string; demo: boolean;
+  identifier: string; verified: boolean;
 }
-export interface ReportTemplate { id: string; name: string; techniques: string[]; sections: string[] }
+export interface ReportTemplate { id: string; name: string; techniques: string[]; sections: string[]; imported_filename?: string }
 export interface ReportContent {
   objet: string; synthese: string; conclusion: string;
+  observations: string; hypotheses: string;
   experienceIds: string[]; sourceIds: string[]; fileIds: string[];
 }
 export interface Report {
