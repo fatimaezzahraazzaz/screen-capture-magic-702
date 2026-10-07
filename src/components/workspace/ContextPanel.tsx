@@ -1,16 +1,17 @@
-import { Check, ExternalLink, Eye, Search } from "lucide-react";
+import { Check, ExternalLink, Eye, FileUp, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useDb } from "@/lib/db/database";
 import { getUi, selectedIds, setUi, toggleExperience, toggleSource } from "@/services/project-service";
 import { searchInternalHistory } from "@/services/rag-service";
 import { searchExternalSources } from "@/services/external-search-service";
-import { suggestReportTemplate } from "@/services/report-service";
+import { importReportTemplate, suggestReportTemplate } from "@/services/report-service";
 import { DemoBadge, TechChip } from "@/components/app/shared";
+import { EvidenceDialog } from "@/components/workspace/EvidenceDialog";
 
 export type ContextTab = "projet" | "experience" | "sources" | "modele";
 
@@ -28,9 +29,9 @@ export function ContextPanel({ projectId, tab, onTab }: { projectId: string; tab
   const sources = searchExternalSources(db, projectId);
   const suggested = suggestReportTemplate(db, projectId);
   const tpl = db.report_templates.find((t) => t.id === ui.templateId) ?? suggested;
-  const [view, setView] = useState<{ title: string; body: string; meta: string } | null>(null);
+  const [view, setView] = useState<{ title: string; body: string; meta: string; quote?: string; quoteMeta?: string } | null>(null);
   const [trace, setTrace] = useState<string | null>(null);
-  const traced = measures.find((m) => m.id === trace);
+  const templateInput = useRef<HTMLInputElement>(null);
 
   if (!project) return null;
 
@@ -64,10 +65,10 @@ export function ContextPanel({ projectId, tab, onTab }: { projectId: string; tab
             <Section title="Résultats tracés">
               <div className="space-y-1">
                 {measures.map((m) => (
-                  <button key={m.id} onClick={() => setTrace(m.id)} className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs hover:bg-muted">
+                  <Button key={m.id} variant="ghost" onClick={() => setTrace(m.id)} className="h-auto w-full justify-between px-2 py-1.5 text-left text-xs">
                     <span>{m.parameter} · <b>{m.value} {m.unit !== "—" ? m.unit : ""}</b></span>
                     <span className={m.status === "contrôlé" ? "text-success" : "text-warning"}>{m.status === "contrôlé" ? "✓" : "!"}</span>
-                  </button>
+                  </Button>
                 ))}
               </div>
             </Section>
@@ -88,7 +89,7 @@ export function ContextPanel({ projectId, tab, onTab }: { projectId: string; tab
                   <div className="mt-1 text-xs text-muted-foreground">Matériau : {e.material} · Technique : {e.technique}</div>
                   <p className="mt-2 text-xs leading-relaxed">{e.summary}</p>
                   <div className="mt-3 flex gap-2">
-                    <Button size="sm" variant="ghost" onClick={() => setView({ title: `Rapport ${e.reference} — ${e.title}`, meta: `${e.material} · ${e.technique} · ${e.year} · secteur ${e.client_sector}`, body: e.summary })}><Eye className="h-3.5 w-3.5" /> Voir la source</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setView({ title: `Rapport ${e.reference} — ${e.title}`, meta: `${e.material} · ${e.technique} · ${e.year} · secteur ${e.client_sector}`, body: e.summary, quote: e.passage, quoteMeta: `${e.passage_location}${e.quote_reference ? ` · Devis lié ${e.quote_reference}` : ""}` })}><Eye className="h-3.5 w-3.5" /> Ouvrir le passage</Button>
                     <Button size="sm" variant={on ? "secondary" : "outline"} onClick={() => toggleExperience(projectId, e.id)}>{on ? <><Check className="h-3.5 w-3.5" /> Sélectionné</> : "Utiliser dans le rapport"}</Button>
                   </div>
                 </div>
@@ -105,9 +106,9 @@ export function ContextPanel({ projectId, tab, onTab }: { projectId: string; tab
                   <div className="text-[11px] text-muted-foreground">Publication {i + 1} · {s.publisher} · {s.year}</div>
                   <div className="mt-1 text-sm font-semibold leading-snug">{s.title}</div>
                   <p className="mt-2 text-xs leading-relaxed">{s.summary}</p>
-                  <span className="mt-2 inline-block rounded bg-warning-soft px-1.5 py-0.5 text-[10px] text-warning">Source de démonstration</span>
+                  <div className="mt-2 flex items-center gap-2 text-[10px]"><span className="bg-success-soft px-1.5 py-0.5 text-success">Référence vérifiable</span><span className="font-mono text-muted-foreground">{s.identifier}</span></div>
                   <div className="mt-3 flex gap-2">
-                    <Button size="sm" variant="ghost" onClick={() => setView({ title: s.title, meta: `${s.publisher} · ${s.year} · ${s.url}`, body: s.summary })}><ExternalLink className="h-3.5 w-3.5" /> Voir</Button>
+                    <Button size="sm" variant="ghost" asChild><a href={s.url} target="_blank" rel="noreferrer"><ExternalLink className="h-3.5 w-3.5" /> Ouvrir</a></Button>
                     <Button size="sm" variant={on ? "secondary" : "outline"} onClick={() => toggleSource(projectId, s.id)}>{on ? <><Check className="h-3.5 w-3.5" /> Source retenue</> : "Ajouter au rapport"}</Button>
                   </div>
                 </div>
@@ -128,6 +129,18 @@ export function ContextPanel({ projectId, tab, onTab }: { projectId: string; tab
                 <SelectContent>{db.report_templates.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+            <div className="border-t border-border pt-3">
+              <input ref={templateInput} type="file" accept=".docx" className="hidden" onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                const id = importReportTemplate(projectId, file);
+                setUi(projectId, { templateId: id });
+                toast.success("Rapport blanc importé", { description: "Les sections des techniques du dossier ont été activées." });
+                event.target.value = "";
+              }} />
+              <Button variant="outline" className="w-full" onClick={() => templateInput.current?.click()}><FileUp className="h-4 w-4" /> Importer un rapport blanc DOCX</Button>
+              {tpl.imported_filename && <p className="mt-2 text-xs text-success">Modèle importé : {tpl.imported_filename}</p>}
+            </div>
           </TabsContent>
         </div>
       </Tabs>
@@ -136,25 +149,11 @@ export function ContextPanel({ projectId, tab, onTab }: { projectId: string; tab
         <DialogContent>
           <DialogHeader><DialogTitle>{view?.title}</DialogTitle><DialogDescription>{view?.meta}</DialogDescription></DialogHeader>
           <p className="text-sm leading-relaxed">{view?.body}</p>
-          <DemoBadge />
+          {view?.quote && <blockquote className="border-l-2 border-primary bg-accent/40 p-4 text-sm"><p>« {view.quote} »</p><footer className="mt-2 text-xs text-muted-foreground">{view.quoteMeta}</footer></blockquote>}
+          {!view?.quote && <DemoBadge />}
         </DialogContent>
       </Dialog>
-      <Dialog open={!!traced} onOpenChange={(o) => !o && setTrace(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Traçabilité du résultat</DialogTitle><DialogDescription>Origine de la valeur utilisée dans le rapport.</DialogDescription></DialogHeader>
-          {traced && (
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <Info label="Paramètre" value={traced.parameter} />
-              <Info label="Valeur" value={`${traced.value} ${traced.unit}`} />
-              <Info label="Échantillon" value={samples.find((s) => s.id === traced.sample_id)?.reference ?? "—"} />
-              <Info label="Fichier source" value={files.find((f) => f.id === traced.source_file_id)?.filename ?? "—"} />
-              <Info label="Mesure" value={traced.method} />
-              <Info label="Version" value={String(traced.version)} />
-              <Info label="Statut" value={traced.status === "contrôlé" ? "✓ Contrôlé" : "À valider par l'analyste"} />
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <EvidenceDialog measurementId={trace} onClose={() => setTrace(null)} />
     </div>
   );
 }

@@ -24,6 +24,8 @@ export function generateReport(projectId: string, templateId: string, experience
     objet: `À la demande de ${p.client}, le laboratoire A&S a réalisé ${p.description ? p.description.charAt(0).toLowerCase() + p.description.slice(1) : "les essais demandés."}`,
     synthese:
       "La poudre ECH-001 présente une structure semi-cristalline dominée par la phase α du PA66 (taux de cristallinité estimé à 38 %). La distribution granulométrique est monomodale (Dv50 = 18,73 µm). La particule ECH-002 est riche en fer et chrome, compatible avec un acier inoxydable. Le dépôt ECH-003 présente une composition organique cohérente avec le polymère de base.",
+    observations: "ECH-001 présente deux pics DRX principaux et une distribution granulométrique monomodale. ECH-002 contient du fer et du chrome. ECH-003 contient majoritairement du carbone, de l'oxygène et de l'azote.",
+    hypotheses: "L'assistant propose que la particule ECH-002 soit compatible avec un acier inoxydable et puisse provenir d'une usure de la ligne de production.",
     conclusion:
       "La contamination observée provient vraisemblablement d'une usure d'un élément métallique en acier inoxydable de la ligne de production. La poudre PA66 elle-même est conforme aux caractéristiques attendues.",
     experienceIds,
@@ -41,6 +43,25 @@ export function generateReport(projectId: string, templateId: string, experience
     projects: d.projects.map((x) => (x.id === projectId ? { ...x, status: "Rapport généré", updated_at: now() } : x)),
   }));
   return report;
+}
+
+export function reportReadiness(db: Database, projectId: string) {
+  const files = db.project_files.filter((f) => f.project_id === projectId);
+  const samples = db.samples.filter((s) => s.project_id === projectId);
+  const measurements = db.measurements.filter((m) => m.project_id === projectId);
+  const blockingFiles = files.filter((f) => f.status === "À vérifier" || f.status === "Analyse en cours");
+  const uncertain = measurements.filter((m) => m.status === "à confirmer" || !m.unit.trim());
+  const missing = files.filter((f) => f.status === "Information manquante");
+  return { files, samples, measurements, blockingFiles, uncertain, missing, ready: files.length > 0 && samples.length > 0 && blockingFiles.length === 0 && uncertain.length === 0 };
+}
+
+export function importReportTemplate(projectId: string, file: File) {
+  const db = getDb();
+  const techniques = db.techniques.filter((t) => t.project_id === projectId).map((t) => t.name);
+  const sections = ["Informations client", "Échantillons", "Méthodes", ...techniques.map((t) => `Résultats ${t}`), "Observations", "Hypothèses de l'assistant", "Conclusion validée", "Sources et preuves"];
+  const templateId = uid("tpl-import");
+  updateDb((d) => ({ ...d, report_templates: [...d.report_templates, { id: templateId, name: file.name.replace(/\.docx$/i, ""), techniques, sections, imported_filename: file.name }] }));
+  return templateId;
 }
 
 export function updateReportContent(reportId: string, patch: Partial<ReportContent>, label: string) {

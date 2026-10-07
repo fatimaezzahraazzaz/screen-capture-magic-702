@@ -14,7 +14,7 @@ const QUICK = [
   { label: "Préparer le rapport", prompt: "Prépare maintenant le rapport.", icon: FileText },
 ];
 
-export function ChatPanel({ projectId, onResult, onOpenReport }: { projectId: string; onResult: (r: ChatResult) => void; onOpenReport: () => void }) {
+export function ChatPanel({ projectId, onResult, onOpenReport, onPrepare }: { projectId: string; onResult: (r: ChatResult) => void; onOpenReport: () => void; onPrepare: () => void }) {
   const messages = useDb((d) => d.chat_messages.filter((m) => m.project_id === projectId));
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -26,6 +26,7 @@ export function ChatPanel({ projectId, onResult, onOpenReport }: { projectId: st
 
   const send = async (msg: string) => {
     if (!msg.trim() || busy) return;
+    if (msg === "Prépare maintenant le rapport.") { onPrepare(); return; }
     setText("");
     setBusy(true);
     const r = await answerChat(projectId, msg.trim());
@@ -77,9 +78,9 @@ export function ChatPanel({ projectId, onResult, onOpenReport }: { projectId: st
         <div className="mx-auto max-w-2xl">
           <div className="mb-3 flex flex-wrap gap-2">
             {QUICK.map(({ label, prompt, icon: Icon }) => (
-              <button key={label} disabled={busy} onClick={() => send(prompt)} className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-secondary-foreground transition-colors hover:border-primary hover:bg-accent hover:text-accent-foreground disabled:opacity-50">
+              <Button key={label} type="button" variant="outline" size="sm" disabled={busy} onClick={() => send(prompt)} className="h-8 rounded-full px-3 text-xs">
                 <Icon className="h-3.5 w-3.5" /> {label}
-              </button>
+              </Button>
             ))}
           </div>
           <form onSubmit={(e) => { e.preventDefault(); send(text); }} className="flex items-end gap-2 rounded-2xl border border-input bg-background p-2 focus-within:ring-2 focus-within:ring-ring/30">
