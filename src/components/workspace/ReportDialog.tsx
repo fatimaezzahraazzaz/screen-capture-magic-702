@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle2, Download, MessageSquare, Pencil, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Download, Eye, MessageSquare, Pencil, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,8 @@ import { answerChat } from "@/services/mock-ai";
 import { DemoBadge, fmtDateTime } from "@/components/app/shared";
 import meb1 from "@/assets/meb-01.jpg";
 import meb2 from "@/assets/meb-02.jpg";
+import { EvidenceDialog } from "@/components/workspace/EvidenceDialog";
+import { ReportReviewDialog } from "@/components/workspace/ReportReviewDialog";
 
 const DRX = [2, 3, 3, 4, 6, 14, 42, 18, 8, 30, 12, 6, 5, 9, 4, 3, 5, 3, 2, 2];
 const GRANULO = [1, 3, 8, 18, 34, 52, 60, 48, 30, 15, 6, 2];
@@ -21,6 +23,11 @@ export function ReportDialog({ projectId, open, onOpenChange }: { projectId: str
   const [edit, setEdit] = useState(false);
   const [draft, setDraft] = useState({ synthese: "", conclusion: "" });
   const [viewVersion, setViewVersion] = useState<number | null>(null);
+  const [evidenceId, setEvidenceId] = useState<string | null>(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [correctionOpen, setCorrectionOpen] = useState(false);
+  const [instruction, setInstruction] = useState("");
+  const [proposal, setProposal] = useState<string | null>(null);
   if (!report || !project) return null;
 
   const versions = db.report_versions.filter((v) => v.report_id === report.id).sort((a, b) => a.version - b.version);
@@ -35,10 +42,16 @@ export function ReportDialog({ projectId, open, onOpenChange }: { projectId: str
 
   const startEdit = () => { setDraft({ synthese: report.content.synthese, conclusion: report.content.conclusion }); setEdit(true); setViewVersion(null); };
   const saveEdit = () => { updateReportContent(report.id, draft, "Modification manuelle"); setEdit(false); toast.success("Modifications enregistrées — nouvelle version créée"); };
-  const askFix = () => {
-    updateReportContent(report.id, { conclusion: report.content.conclusion + " Une analyse complémentaire de la ligne de production est recommandée pour confirmer l'origine." }, "Correction de la conclusion");
-    void answerChat(projectId, "Corrige la conclusion du rapport.");
-    toast.success("L'assistant a corrigé la conclusion");
+  const proposeFix = () => {
+    if (!instruction.trim()) return;
+    setProposal(`${report.content.conclusion} ${instruction.trim()}`);
+  };
+  const acceptFix = () => {
+    if (!proposal) return;
+    updateReportContent(report.id, { conclusion: proposal }, `Correction expert : ${instruction.trim()}`);
+    void answerChat(projectId, `Correction demandée par l'expert : ${instruction.trim()}`);
+    setCorrectionOpen(false); setProposal(null); setInstruction("");
+    toast.success("Correction acceptée — nouvelle version créée");
   };
 
   return (
@@ -52,8 +65,8 @@ export function ReportDialog({ projectId, open, onOpenChange }: { projectId: str
           <div className="mr-8 flex flex-wrap gap-2">
             {!validated && !edit && <Button size="sm" variant="outline" onClick={startEdit}><Pencil className="h-3.5 w-3.5" /> Modifier</Button>}
             {edit && <Button size="sm" onClick={saveEdit}>Enregistrer</Button>}
-            {!validated && <Button size="sm" variant="outline" onClick={askFix}><MessageSquare className="h-3.5 w-3.5" /> Demander une correction à l'assistant</Button>}
-            {!validated && <Button size="sm" onClick={() => { validateReport(report.id, "Expert Démo"); setViewVersion(null); toast.success("Rapport validé"); }}><ShieldCheck className="h-3.5 w-3.5" /> Valider le rapport</Button>}
+            {!validated && <Button size="sm" variant="outline" onClick={() => setCorrectionOpen(true)}><MessageSquare className="h-3.5 w-3.5" /> Demander une correction</Button>}
+            {!validated && <Button size="sm" onClick={() => setReviewOpen(true)}><ShieldCheck className="h-3.5 w-3.5" /> Valider le rapport</Button>}
             <Button size="sm" variant={validated ? "default" : "outline"} onClick={() => { exportWord(project.name, project.reference, report.content); toast.success("Document Word généré avec succès."); }}><Download className="h-3.5 w-3.5" /> Exporter en Word</Button>
           </div>
         </div>
@@ -96,12 +109,14 @@ export function ReportDialog({ projectId, open, onOpenChange }: { projectId: str
                 <Bars data={GRANULO} label="Distribution volumique (%) en fonction de la taille" />
                 <Tbl rows={[["Dv10", m("Dv10")], ["Dv50", m("Dv50")], ["Dv90", m("Dv90")]]} db={db} />
               </S>
-              <S n={7} t="Synthèse">{edit ? <Textarea rows={5} value={draft.synthese} onChange={(e) => setDraft({ ...draft, synthese: e.target.value })} /> : <p>{shown.synthese}</p>}</S>
-              <S n={8} t="Conclusion" badge={!validated ? "À valider par l'expert" : undefined}>{edit ? <Textarea rows={4} value={draft.conclusion} onChange={(e) => setDraft({ ...draft, conclusion: e.target.value })} /> : <p>{shown.conclusion}</p>}</S>
-              <S n={9} t="Sources utilisées">
+              <S n={7} t="Observations factuelles"><div className="border-l-2 border-info bg-info-soft p-4"><p>{shown.observations}</p><p className="mt-2 text-xs text-muted-foreground">Établies à partir des mesures et images contrôlées ci-dessus.</p></div></S>
+              <S n={8} t="Hypothèses de l'assistant" badge="Interprétation à contrôler"><div className="border-l-2 border-warning bg-warning-soft p-4">{shown.hypotheses}</div></S>
+              <S n={9} t="Synthèse">{edit ? <Textarea rows={5} value={draft.synthese} onChange={(e) => setDraft({ ...draft, synthese: e.target.value })} /> : <p>{shown.synthese}</p>}</S>
+              <S n={10} t={validated ? "Conclusion validée par l'expert" : "Conclusion proposée"} badge={!validated ? "À valider par l'expert" : undefined}>{edit ? <Textarea rows={4} value={draft.conclusion} onChange={(e) => setDraft({ ...draft, conclusion: e.target.value })} /> : <p>{shown.conclusion}</p>}</S>
+              <S n={11} t="Sources utilisées">
                 <Src title="Sources du projet" items={files.map((f) => f.filename)} />
                 <Src title="Expériences A&S" items={exps.map((e) => `Rapport ${e.reference} — ${e.title}`)} />
-                <Src title="Sources externes" items={srcs.map((s) => `${s.title} (${s.publisher}, ${s.year}) — source de démonstration`)} />
+                <Src title="Sources externes" items={srcs.map((s) => `${s.identifier} — ${s.title} (${s.publisher}, ${s.year})`)} />
               </S>
             </article>
           </div>
@@ -123,6 +138,16 @@ export function ReportDialog({ projectId, open, onOpenChange }: { projectId: str
           </aside>
         </div>
       </DialogContent>
+      <EvidenceDialog measurementId={evidenceId} onClose={() => setEvidenceId(null)} />
+      <ReportReviewDialog projectId={projectId} open={reviewOpen} mode="validate" onOpenChange={setReviewOpen} onContinue={() => { validateReport(report.id, "Expert Démo"); setReviewOpen(false); setViewVersion(null); toast.success("Rapport validé"); }} />
+      <Dialog open={correctionOpen} onOpenChange={(open) => { setCorrectionOpen(open); if (!open) setProposal(null); }}>
+        <DialogContent className="max-w-3xl">
+          <DialogTitle>Correction guidée par l'expert</DialogTitle>
+          <p className="text-sm text-muted-foreground">Décrivez précisément la correction. Aucune version ne sera créée avant votre acceptation.</p>
+          <Textarea rows={3} value={instruction} onChange={(e) => setInstruction(e.target.value)} placeholder="Ex. Remplacer l'affirmation sur l'origine par une hypothèse et recommander une analyse complémentaire." />
+          {!proposal ? <Button onClick={proposeFix} disabled={!instruction.trim()}><Eye className="h-4 w-4" /> Prévisualiser les changements</Button> : <div className="grid gap-3 md:grid-cols-2"><div className="border border-border p-4"><div className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Avant</div><p className="text-sm line-through opacity-70">{report.content.conclusion}</p></div><div className="border border-primary bg-accent/40 p-4"><div className="mb-2 text-xs font-semibold uppercase text-accent-foreground">Après</div><p className="text-sm">{proposal}</p></div><div className="flex gap-2 md:col-span-2 md:justify-end"><Button variant="outline" onClick={() => setProposal(null)}>Modifier l'instruction</Button><Button onClick={acceptFix}>Accepter et créer une version</Button></div></div>}
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
@@ -147,14 +172,14 @@ function Bars({ data, label }: { data: number[]; label: string }) {
   );
 }
 type DbT = ReturnType<typeof import("@/lib/db/database").getDb>;
-function Tbl({ rows, db }: { rows: [string, DbT["measurements"][number] | undefined][]; db: DbT }) {
+function Tbl({ rows, db, onEvidence }: { rows: [string, DbT["measurements"][number] | undefined][]; db: DbT; onEvidence?: (id: string) => void }) {
   return (
     <table className="w-full text-xs">
       <thead><tr className="border-b border-border text-left text-muted-foreground"><th className="py-1.5">Paramètre</th><th>Valeur</th><th>Source</th><th>Statut</th></tr></thead>
       <tbody>{rows.map(([l, m]) => m && (
         <tr key={l} className="border-b border-border">
           <td className="py-1.5">{l}</td><td className="font-medium">{m.value} {m.unit !== "—" ? m.unit : ""}</td>
-          <td className="text-muted-foreground">{db.project_files.find((f) => f.id === m.source_file_id)?.filename} · v{m.version}</td>
+          <td><Button variant="link" className="h-auto p-0 text-xs" onClick={() => onEvidence?.(m.id)}>{db.project_files.find((f) => f.id === m.source_file_id)?.filename} · v{m.version}</Button></td>
           <td className={m.status === "contrôlé" ? "text-success" : "text-warning"}>{m.status === "contrôlé" ? "✓ Contrôlé" : "À valider par l'analyste"}</td>
         </tr>
       ))}</tbody>
